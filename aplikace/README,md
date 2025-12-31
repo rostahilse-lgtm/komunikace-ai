@@ -1,0 +1,164 @@
+# 📱 Evidence práce - PWA Aplikace
+
+## 📦 INSTALACE
+
+### KROK 1: Nahrání Apps Script
+
+1. Otevři Google Sheet: https://docs.google.com/spreadsheets/d/1OMSWRrn2aBHMItjx4Vu0Syn4PII8F1uw-GSWEuaoZGo/edit
+2. Klikni na **Rozšíření** → **Apps Script**
+3. Zkopíruj **celý obsah** souboru `Code.gs` z tohoto repozitáře
+4. Vlož ho do Apps Script editoru (přepiš veškerý stávající kód)
+5. Klikni na **💾 Uložit** (Ctrl+S)
+6. Klikni na **🚀 Nasadit** → **Nové nasazení**
+7. Vyber typ: **Webová aplikace**
+8. Nastav:
+   - **Popis:** Evidence práce PWA v1
+   - **Spustit jako:** Já
+   - **Kdo má přístup:** Kdokoli
+9. Klikni **Nasadit**
+10. **DŮLEŽITÉ:** Zkopíruj **URL webové aplikace** (končí na `/exec`)
+
+---
+
+### KROK 2: Konfigurace PWA aplikace
+
+1. Otevři soubor `index.html`
+2. Najdi řádek s `API_URL` (cca řádek 34):
+   ```javascript
+   const API_URL = 'https://script.google.com/macros/s/...../exec';
+   ```
+3. Nahraď URL tím, co jsi zkopíroval v KROKU 1
+4. Ulož soubor
+
+---
+
+### KROK 3: Nahrání na Netlify
+
+#### Možnost A: Přes GitHub (doporučeno)
+
+1. Nahraj všechny soubory do tvého GitHub repo: `rostahilse-lgtm/komunikace-ai`
+2. Přihlas se na https://app.netlify.com
+3. Klikni **New site from Git**
+4. Vyber **GitHub** → vyber svoje repo
+5. Nastav:
+   - **Branch:** main
+   - **Build command:** (nech prázdné)
+   - **Publish directory:** `docs/aplikace` (nebo kde máš index.html)
+6. Klikni **Deploy site**
+7. Počkej 1-2 minuty
+8. Hotovo! Máš URL typu: `https://xxx-yyy-zzz.netlify.app`
+
+#### Možnost B: Ruční nahrání
+
+1. Přihlas se na https://app.netlify.com
+2. Přetáhni `index.html` na stránku (drag & drop)
+3. Hotovo!
+
+---
+
+### KROK 4: Instalace na mobil jako PWA
+
+1. Otevři aplikaci v mobilu (Chrome/Safari)
+2. Na Androidu: **3 tečky** → **Přidat na plochu**
+3. Na iOS: **Sdílet** → **Přidat na plochu**
+4. Hotovo! Aplikace se chová jako normální aplikace
+
+---
+
+## 🎯 TESTOVÁNÍ
+
+### Test přihlášení:
+1. Otevři aplikaci
+2. Zadej kód pracovníka (např. `99889988`)
+3. Měl by ses přihlásit
+
+### Test zápisu směny:
+1. Klikni **PŘÍCHOD** → uloží se čas
+2. Klikni **ODCHOD** → uloží se čas
+3. Vyber zakázku a práci
+4. Klikni **Uložit směnu**
+5. Zkontroluj v Google Sheets → list "záznamy"
+
+### Test oběda:
+1. Záložka **Oběd**
+2. Klikni **Uložit oběd**
+3. Zkontroluj v Google Sheets → list "zálohy" (měla by být cena podle období)
+
+### Test přehledů:
+1. Spodní navigace → **Přehledy**
+2. Vyber období
+3. Klikni **Načíst přehled**
+4. Měl by se zobrazit přehled hodin, výdělku a záloh
+
+---
+
+## 🔧 STRUKTURA PROJEKTU
+
+```
+📁 komunikace-ai/
+├── 📁 docs/
+│   ├── 📁 aplikace/
+│   │   ├── index.html      ← PWA aplikace
+│   │   └── manifest.json   ← PWA manifest (volitelné)
+│   └── 📁 konverzace/
+│       └── souhrn.md       ← Souhrn projektu
+└── Code.gs                 ← Apps Script
+```
+
+---
+
+## 🐛 ŘEŠENÍ PROBLÉMŮ
+
+### "Chyba připojení"
+- Zkontroluj URL v `API_URL` (musí končit na `/exec`)
+- Zkontroluj, že je Apps Script nasazený jako "Webová aplikace"
+- Zkontroluj, že má přístup "Kdokoli"
+
+### "Neplatný kód pracovníka"
+- Zkontroluj, že pracovník existuje v Google Sheets → list "pracovníci"
+- Zkontroluj, že má sloupec C = "Y" (aktivní)
+
+### "Duplicate record"
+- Záznam už existuje (ochrana proti duplikátům)
+- Je to OK - záznam se neuloží 2x
+
+### Aplikace se nenačítá
+- Vyčisti cache prohlížeče (Ctrl+Shift+Del)
+- Zkus incognito režim
+- Zkontroluj konzoli (F12) - podívej se na chyby
+
+---
+
+## 📱 FUNKCE APLIKACE
+
+### ✅ Hotové funkce:
+- [x] Přihlášení pomocí kódu pracovníka
+- [x] Tlačítka PŘÍCHOD / ODCHOD
+- [x] Zápis směny (zakázka + práce)
+- [x] Zápis oběda (automatická cena podle období)
+- [x] Zápis zálohy
+- [x] Finanční přehledy
+- [x] Historie záznamů
+- [x] Kontrola duplikátů
+- [x] PWA instalace na mobil
+
+### 🔜 Plánované funkce:
+- [ ] Admin záložka (správa zakázek, pracovníků)
+- [ ] Editace záznamů
+- [ ] Offline režim
+- [ ] Notifikace
+
+---
+
+## 📞 KONTAKT
+
+- **Autor původního scriptu:** Ing. Pavel Kříž (ing.pavel.kriz@gmail.com)
+- **PWA aplikace:** Upraveno pro mobilní použití (2025)
+- **GitHub:** https://github.com/rostahilse-lgtm/komunikace-ai
+
+---
+
+## 📄 LICENCE
+
+Původní Apps Script © 2025 Ing. Pavel Kříž
+PWA aplikace je rozšířením původní aplikace.
