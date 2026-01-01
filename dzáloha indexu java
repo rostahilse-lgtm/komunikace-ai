@@ -1,1 +1,375 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Evidence práce</title>
+  <meta name="theme-color" content="#ffffff"/>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f0f2f5; color: #333; text-align: center; }
+    h1 { color: #2c3e50; margin: 20px 0; }
+    select, input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
+    button { width: 100%; padding: 15px; margin: 10px 0; font-size: 18px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; color: white; }
+    #btnPrichod { background: #27ae60; }
+    #btnOdchod { background: #e74c3c; display: none; }
+    #status { margin: 20px 0; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    #casovac { font-size: 32px; font-weight: bold; color: #e67e22; }
+    .settings-box { background: #fff9e6; border: 1px solid #ffd700; padding: 15px; margin: 20px 0; border-radius: 8px; text-align: left; }
+    #settingsModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+    #settingsContent { background: white; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+    #settingsBtn, #btnLogin { background: #3498db; font-size: 16px; padding: 12px; }
+    #menu { display: none; margin: 20px 0; }
+    #menu button { background: #3498db; margin: 5px 0; }
+    .section { display: none; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body>
 
+  <h1>Evidence práce</h1>
+
+  <!-- Úvodní přihlášení -->
+  <div id="loginScreen">
+    <select id="workerCode">
+      <option value="">Zadejte váš kód</option>
+    </select>
+    <button id="btnLogin">Přihlásit se</button>
+
+    <div class="settings-box">
+      <strong>Nastavení:</strong><br>
+      1. Nejdříve v nastavení zadejte URL vašeho Apps Script<br>
+      2. Načtěte data (zakázky, práce, pracovníci)<br>
+      3. Pak zadejte svůj kód pracovníka
+    </div>
+
+    <button id="settingsBtn">Otevřít nastavení</button>
+  </div>
+
+  <!-- Menu po přihlášení -->
+  <div id="menu">
+    <button id="btnDochazka">Docházka</button>
+    <button id="btnObedy">Obědy</button>
+    <button id="btnZalohy">Zálohy</button>
+    <button id="btnSouhrn">Souhrn</button>
+    <button id="btnHistorie">Historie</button>
+  </div>
+
+  <!-- Docházka -->
+  <div id="dochazkaSection" class="section">
+    <select id="zakazka">
+      <option value="">Vyber zakázku</option>
+    </select>
+    <select id="typPrace">
+      <option value="">Typ práce</option>
+    </select>
+    <textarea id="poznamka" placeholder="Poznámka (co se dělalo – volitelné)" rows="4"></textarea>
+    <div id="status">
+      <p id="stavText">Vyber údaje a stiskni PŘÍCHOD</p>
+      <p id="casovac">--:--:--</p>
+    </div>
+    <button id="btnPrichod">PŘÍCHOD</button>
+    <button id="btnOdchod">ODCHOD</button>
+  </div>
+
+  <!-- Obědy (jako záloha) -->
+  <div id="obedySection" class="section">
+    <input type="date" id="lunchDate" value="">
+    <input type="number" id="lunchAmount" value="150" placeholder="Částka za oběd">
+    <button id="btnSaveLunch">Uložit oběd (jako záloha)</button>
+  </div>
+
+  <!-- Zálohy -->
+  <div id="zalohySection" class="section">
+    <input type="number" id="advanceAmount" placeholder="Částka">
+    <textarea id="advanceReason" placeholder="Důvod (volitelné)" rows="3"></textarea>
+    <button id="btnSaveAdvance">Uložit zálohu</button>
+  </div>
+
+  <!-- Souhrn -->
+  <div id="souhrnSection" class="section">
+    <p id="summaryText">Načítám souhrn...</p>
+  </div>
+
+  <!-- Historie -->
+  <div id="historieSection" class="section">
+    <ul id="recordsList"></ul>
+  </div>
+
+  <!-- Modal nastavení -->
+  <div id="settingsModal">
+    <div id="settingsContent">
+      <h2>Nastavení URL</h2>
+      <input type="text" id="scriptUrl" placeholder="Vložte celou URL /exec z Apps Scriptu">
+      <button id="saveUrlBtn" style="background:#27ae60;">Uložit URL</button>
+      <button id="closeSettings" style="background:#e74c3c; margin-left:10px;">Zavřít</button>
+      <p id="saveStatus" style="margin-top:10px; color:green;"></p>
+    </div>
+  </div>
+
+  <script>
+    const baseUrl = window.location.href.split('?')[0]; // plná URL appky bez parametrů
+
+    let workerId = null;
+    let timerInterval = null;
+    let startTime = null;
+    let currentData = null;
+
+    const loginScreen = document.getElementById('loginScreen');
+    const menu = document.getElementById('menu');
+    const settingsModal = document.getElementById('settingsModal');
+    const scriptUrlInput = document.getElementById('scriptUrl');
+    const saveUrlBtn = document.getElementById('saveUrlBtn');
+    const closeSettings = document.getElementById('closeSettings');
+    const saveStatus = document.getElementById('saveStatus');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const btnLogin = document.getElementById('btnLogin');
+    const workerCodeSelect = document.getElementById('workerCode');
+    const zakazkaSelect = document.getElementById('zakazka');
+    const typPraceSelect = document.getElementById('typPrace');
+    const poznamka = document.getElementById('poznamka');
+    const btnPrichod = document.getElementById('btnPrichod');
+    const btnOdchod = document.getElementById('btnOdchod');
+    const statusText = document.getElementById('stavText');
+    const casovac = document.getElementById('casovac');
+    const btnDochazka = document.getElementById('btnDochazka');
+    const btnObedy = document.getElementById('btnObedy');
+    const btnZalohy = document.getElementById('btnZalohy');
+    const btnSouhrn = document.getElementById('btnSouhrn');
+    const btnHistorie = document.getElementById('btnHistorie');
+    const lunchDate = document.getElementById('lunchDate');
+    const lunchAmount = document.getElementById('lunchAmount');
+    const btnSaveLunch = document.getElementById('btnSaveLunch');
+    const advanceAmount = document.getElementById('advanceAmount');
+    const advanceReason = document.getElementById('advanceReason');
+    const btnSaveAdvance = document.getElementById('btnSaveAdvance');
+    const summaryText = document.getElementById('summaryText');
+    const recordsList = document.getElementById('recordsList');
+
+    const sections = document.querySelectorAll('.section');
+
+    window.addEventListener('load', () => {
+      loadData();
+    });
+
+    async function loadData() {
+      try {
+        const workers = await fetchData('workers');
+        fillSelect(workerCodeSelect, workers, true);
+
+        const contracts = await fetchData('contracts');
+        fillSelect(zakazkaSelect, contracts);
+
+        const jobs = await fetchData('jobs');
+        fillSelect(typPraceSelect, jobs);
+      } catch (err) {
+        console.error('Chyba načtení dat:', err);
+        alert('Chyba načtení dat: ' + err.message);
+      }
+    }
+
+    async function fetchData(type) {
+      const url = baseUrl + '?action=get&type=' + type;
+      console.log('Volám fetch:', url); // diagnostika
+      const res = await fetch(url);
+      const text = await res.text();
+      console.log('Odpověď pro ' + type + ':', text.substring(0, 200)); // ukáže začátek odpovědi
+      const json = JSON.parse(text);
+      if (!json.success) throw new Error(json.message || 'Neznámá chyba');
+      return json.data;
+    }
+
+    function fillSelect(select, items, useId = false) {
+      select.innerHTML = '<option value="">Vyber...</option>';
+      items.forEach(item => {
+        const option = document.createElement('option');
+        option.value = useId ? item.id : item.name;
+        option.textContent = item.name;
+        select.appendChild(option);
+      });
+    }
+
+    btnLogin.addEventListener('click', () => {
+      const code = workerCodeSelect.value;
+      if (code) {
+        workerId = code;
+        loginScreen.style.display = 'none';
+        menu.style.display = 'block';
+        showSection('dochazkaSection');
+      } else {
+        alert('Zadejte kód!');
+      }
+    });
+
+    btnDochazka.addEventListener('click', () => showSection('dochazkaSection'));
+    btnObedy.addEventListener('click', () => showSection('obedySection'));
+    btnZalohy.addEventListener('click', () => showSection('zalohySection'));
+    btnSouhrn.addEventListener('click', () => {
+      showSection('souhrnSection');
+      loadSummary();
+    });
+    btnHistorie.addEventListener('click', () => {
+      showSection('historieSection');
+      loadRecords();
+    });
+
+    function showSection(id) {
+      sections.forEach(section => section.style.display = 'none');
+      document.getElementById(id).style.display = 'block';
+    }
+
+    btnPrichod.addEventListener('click', () => {
+      const zakazka = zakazkaSelect.value;
+      const typPrace = typPraceSelect.value;
+      const note = poznamka.value.trim();
+
+      if (!workerId || !zakazka || !typPrace) {
+        alert('Vyber všechny údaje!');
+        return;
+      }
+
+      startTime = Date.now();
+      currentData = { workerId, zakazka, typPrace, note, start: new Date().toISOString() };
+
+      statusText.textContent = `Pracuješ na ${zakazka} (${typPrace})`;
+      btnPrichod.style.display = 'none';
+      btnOdchod.style.display = 'block';
+
+      timerInterval = setInterval(updateTimer, 1000);
+      updateTimer();
+    });
+
+    btnOdchod.addEventListener('click', () => {
+      if (!startTime) return;
+
+      clearInterval(timerInterval);
+      const end = new Date().toISOString();
+      const durationMs = Date.now() - startTime;
+      const durationHours = (durationMs / 3600000).toFixed(3);
+
+      const entry = {
+        action: 'saveRecord',
+        workerId,
+        contractId: zakazkaSelect.value,
+        jobId: typPraceSelect.value,
+        date: new Date().toISOString().split('T')[0],
+        timeFrom: new Date(currentData.start).toTimeString().slice(0,5),
+        timeTo: new Date(end).toTimeString().slice(0,5),
+        note: currentData.note || ''
+      };
+
+      fetch(baseUrl + '?action=saveRecord', {
+        method: 'POST',
+        body: JSON.stringify(entry)
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) alert(`Záznam uložen! Odpracováno ${durationHours} h`);
+        else alert('Chyba při ukládání: ' + data.message);
+      })
+      .catch(err => alert('Chyba odeslání: ' + err));
+
+      startTime = null;
+      currentData = null;
+      statusText.textContent = 'Vyber údaje a stiskni PŘÍCHOD';
+      casovac.textContent = '--:--:--';
+      btnPrichod.style.display = 'block';
+      btnOdchod.style.display = 'none';
+      poznamka.value = '';
+    });
+
+    function updateTimer() {
+      if (!startTime) return;
+      const diff = Date.now() - startTime;
+      const hours = Math.floor(diff / 3600000);
+      const minutes = Math.floor((diff % 3600000) / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      casovac.textContent = `${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+    }
+
+    btnSaveLunch.addEventListener('click', () => {
+      const date = lunchDate.value;
+      const amount = lunchAmount.value;
+      if (!date || !amount) return alert('Zadejte datum a částku!');
+      const data = {
+        action: 'saveAdvance',
+        workerId,
+        amount: parseFloat(amount),
+        reason: 'Oběd ' + date
+      };
+      sendData(data, 'Oběd uložen jako záloha!');
+    });
+
+    btnSaveAdvance.addEventListener('click', () => {
+      const amount = advanceAmount.value;
+      const reason = advanceReason.value.trim();
+      if (!amount) return alert('Zadejte částku!');
+      const data = {
+        action: 'saveAdvance',
+        workerId,
+        amount: parseFloat(amount),
+        reason
+      };
+      sendData(data, 'Záloha uložená!');
+    });
+
+    async function sendData(data, successMsg) {
+      try {
+        const url = baseUrl + '?action=' + data.action;
+        console.log('Volám sendData:', url);
+        const res = await fetch(url, {
+          method: 'POST',
+          body: JSON.stringify(data)
+        });
+        const text = await res.text();
+        console.log('Odpověď sendData:', text.substring(0, 200));
+        const json = JSON.parse(text);
+        if (json.success) alert(successMsg);
+        else alert('Chyba: ' + json.message);
+      } catch (err) {
+        alert('Chyba sítě: ' + err);
+      }
+    }
+
+    async function loadSummary() {
+      try {
+        const url = baseUrl + '?action=getSummary&workerId=' + workerId;
+        console.log('Volám loadSummary:', url);
+        const res = await fetch(url);
+        const text = await res.text();
+        console.log('Souhrn odpověď:', text.substring(0, 200));
+        const json = JSON.parse(text);
+        if (json.success) {
+          const data = json.data;
+          summaryText.innerHTML = `
+            Odpracováno: ${data.hours || 0} h<br>
+            Vyděláno: ${data.earnings || 0} Kč<br>
+            Vyplaceno: ${data.paid || 0} Kč<br>
+            Zbývá: ${data.remaining || 0} Kč
+          `;
+        } else {
+          summaryText.textContent = 'Žádný souhrn nebo chyba';
+        }
+      } catch (err) {
+        summaryText.textContent = 'Chyba sítě: ' + err.message;
+      }
+    }
+
+    async function loadRecords() {
+      try {
+        const url = baseUrl + '?action=getRecords&workerId=' + workerId + '&limit=10';
+        console.log('Volám loadRecords:', url);
+        const res = await fetch(url);
+        const text = await res.text();
+        console.log('Historie odpověď:', text.substring(0, 200));
+        const json = JSON.parse(text);
+        if (json.success) {
+          recordsList.innerHTML = json.data.map(record => `<li>${record.date}: ${record.timeFrom} - ${record.timeTo} (${record.contractName}, ${record.jobName})</li>`).join('');
+        } else {
+          recordsList.innerHTML = '<li>Žádné záznamy nebo chyba</li>';
+        }
+      } catch (err) {
+        recordsList.innerHTML = '<li>Chyba sítě: ' + err.message + '</li>';
+      }
+    }
+  </script>
+</body>
+</html>
