@@ -1664,3 +1664,4 @@ window.app.component('admin-component', {
 # 📝 POZNÁMKY PRO AI ASISTENTY
 
 **Když
+přidáno do home. js od řádku 311 dolu
