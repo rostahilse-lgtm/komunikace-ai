@@ -497,7 +497,7 @@ app.component('login-component', {
 **Popis:** Komponenta domovské stránky (Směna, Oběd, Záloha) - AKTUÁLNÍ NEFUNKČNÍ VERZE  
 **Cesta:** `/js/components/home.js`  
 **Velikost:** ~7 KB  
-**⚠️ STAV:** Obsahuje chyby - aplikace se načítá ale nefunguje
+**⚠️ STAV:** Obsahuje chyby - aplikace se načítá ale nefunguje nutno opravit
 
 ```javascript
 // Komponenta pro domovskou stránku (Směna, Oběd, Záloha)
