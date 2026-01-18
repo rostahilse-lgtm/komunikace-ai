@@ -823,3 +823,683 @@ app.component('home-component', {
     </div>
   `
 });
+
+# POKRAČOVÁNÍ OD BODU 8️⃣
+
+---
+
+# 8️⃣ js/components/home.js - DOKONČENÍ
+
+```javascript
+  template: `
+    <div>
+      <q-tabs v-model="currentTab" dense align="justify" class="text-primary">
+        <q-tab name="shift" label="Směna"/>
+        <q-tab name="lunch" label="Oběd"/>
+        <q-tab name="advance" label="Záloha"/>
+      </q-tabs>
+
+      <!-- SMĚNA -->
+      <div v-if="currentTab === 'shift'" class="q-pt-md">
+        <q-btn 
+          @click="setArrival" 
+          color="green" 
+          icon="login" 
+          label="PŘÍCHOD" 
+          class="full-width q-mb-md time-btn" 
+          :disabled="shiftForm.timeStart"
+        />
+        
+        <div v-if="shiftForm.timeStart" class="q-mb-md q-pa-sm" style="background: #e8f5e9; border-radius: 4px;">
+          <div class="text-bold text-green-8">✓ Příchod zaznamenán</div>
+          <div>{{ formatShortDateTime(shiftForm.timeStart) }}</div>
+        </div>
+        
+        <q-btn 
+          @click="setDeparture" 
+          color="orange" 
+          icon="logout" 
+          label="ODCHOD" 
+          class="full-width q-mb-md time-btn" 
+          :disabled="!shiftForm.timeStart || shiftForm.timeEnd"
+        />
+        
+        <div v-if="shiftForm.timeEnd" class="q-mb-md q-pa-sm" style="background: #fff3e0; border-radius: 4px;">
+          <div class="text-bold text-orange-8">✓ Odchod zaznamenán</div>
+          <div>{{ formatShortDateTime(shiftForm.timeEnd) }}</div>
+          <div class="text-primary text-bold q-mt-sm">
+            Odpracováno: {{ ((shiftForm.timeEnd - shiftForm.timeStart) / 3600000).toFixed(2) }} hod
+          </div>
+        </div>
+        
+        <q-select 
+          v-model="shiftForm.contractId" 
+          :options="contractOptions" 
+          label="Zakázka *" 
+          emit-value 
+          map-options 
+          outlined 
+          class="q-mb-md"
+        />
+        
+        <q-select 
+          v-model="shiftForm.jobId" 
+          :options="jobOptions" 
+          label="Práce *" 
+          emit-value 
+          map-options 
+          outlined 
+          class="q-mb-md"
+        />
+        
+        <q-input 
+          v-model="shiftForm.note" 
+          label="Poznámka *" 
+          outlined 
+          class="q-mb-md" 
+          type="textarea" 
+          rows="3"
+        />
+        
+        <q-btn 
+          @click="saveShift" 
+          label="Uložit směnu" 
+          color="primary" 
+          :loading="loading" 
+          class="full-width" 
+          size="lg"
+        />
+      </div>
+
+      <!-- OBĚD -->
+      <div v-if="currentTab === 'lunch'" class="q-pt-md">
+        <div class="text-center q-mb-md">
+          <q-icon name="restaurant" size="4rem" color="orange"/>
+          <div class="text-h6 q-mt-md">{{ getTodayDate() }}</div>
+        </div>
+        <q-btn 
+          @click="saveLunch" 
+          label="Uložit oběd" 
+          color="orange" 
+          :loading="loading" 
+          class="full-width" 
+          size="lg" 
+          icon="restaurant"
+        />
+      </div>
+
+      <!-- ZÁLOHA -->
+      <div v-if="currentTab === 'advance'" class="q-pt-md">
+        <q-input 
+          v-model.number="advanceForm.amount" 
+          label="Částka (Kč) *" 
+          type="number" 
+          outlined 
+          class="q-mb-md"
+        />
+        <q-input 
+          v-model="advanceForm.reason" 
+          label="Důvod *" 
+          outlined 
+          class="q-mb-md" 
+          type="textarea" 
+          rows="2"
+        />
+        <q-btn 
+          @click="saveAdvance" 
+          label="Uložit zálohu" 
+          color="primary" 
+          :loading="loading" 
+          class="full-width" 
+          size="lg"
+        />
+      </div>
+    </div>
+  `
+});
+```
+
+**⚠️ ZNÁMÝ PROBLÉM V TOMTO SOUBORU:**
+- Řádky s `formatTime(t)`, `formatShortDateTime(t)`, `getTodayDate()` v metodách jsou zbytečné
+- Tyto funkce jsou již globální z `utils.js`
+- Lze je používat přímo v template i metodách bez redefinice
+
+---
+
+# 9️⃣ js/components/summary.js
+
+**Popis:** Komponenta pro přehledy financí, záznamů, obědů a záloh  
+**Cesta:** `/js/components/summary.js`
+
+```javascript
+// Komponenta pro přehledy (Finance, Záznamy, Obědy, Zálohy)
+window.app.component('summary-component', {
+  props: ['summary', 'records', 'advances', 'lunches'],
+  emits: ['message'],
+  
+  data() {
+    return {
+      summaryTab: 'finances',
+      useDateFilter: false,
+      dateFrom: getMonthStart(),
+      dateTo: getTodayDate()
+    }
+  },
+  
+  computed: {
+    filteredRecords() {
+      if (!this.useDateFilter) return this.records;
+      return this.records.filter(r => {
+        return r.date >= this.dateFrom && r.date <= this.dateTo;
+      });
+    },
+    
+    filteredAdvances() {
+      if (!this.useDateFilter) return this.advances;
+      return this.advances.filter(a => {
+        return a.date >= this.dateFrom && a.date <= this.dateTo;
+      });
+    },
+    
+    filteredLunches() {
+      if (!this.useDateFilter) return this.lunches;
+      return this.lunches.filter(l => {
+        return l.date >= this.dateFrom && l.date <= this.dateTo;
+      });
+    },
+    
+    filteredSummary() {
+      if (!this.useDateFilter || !this.summary) return this.summary;
+      
+      const filtered = this.filteredRecords;
+      const totalHours = filtered.reduce((sum, r) => sum + (r.hours || 0), 0);
+      const totalEarnings = filtered.reduce((sum, r) => sum + (r.earnings || 0), 0);
+      const totalAdvances = this.filteredAdvances.reduce((sum, a) => sum + (a.amount || 0), 0);
+      const totalLunches = this.filteredLunches.length * 100;
+      
+      return {
+        totalHours,
+        totalEarnings,
+        totalAdvances,
+        totalLunches,
+        balance: totalEarnings - totalAdvances - totalLunches
+      };
+    }
+  },
+  
+  template: `
+    <div>
+      <!-- Date Filter -->
+      <q-card class="q-mb-md">
+        <q-card-section>
+          <q-toggle
+            v-model="useDateFilter"
+            label="Filtrovat podle data"
+          />
+          
+          <div v-if="useDateFilter" class="row q-gutter-md q-mt-sm">
+            <q-input
+              v-model="dateFrom"
+              type="date"
+              label="Od"
+              outlined
+              dense
+              class="col"
+            />
+            <q-input
+              v-model="dateTo"
+              type="date"
+              label="Do"
+              outlined
+              dense
+              class="col"
+            />
+          </div>
+        </q-card-section>
+      </q-card>
+      
+      <!-- Tabs -->
+      <q-tabs v-model="summaryTab" dense align="justify" class="q-mb-md">
+        <q-tab name="finances" icon="account_balance" label="Finance" />
+        <q-tab name="records" icon="list" label="Záznamy" />
+        <q-tab name="lunches" icon="restaurant" label="Obědy" />
+        <q-tab name="advances" icon="payments" label="Zálohy" />
+      </q-tabs>
+      
+      <!-- Finance -->
+      <div v-if="summaryTab === 'finances'">
+        <q-card>
+          <q-list>
+            <q-item>
+              <q-item-section>
+                <q-item-label>Celkem hodin</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-item-label>{{ filteredSummary?.totalHours || 0 }} h</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-separator />
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label>Celkem výdělek</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-item-label class="text-positive">{{ filteredSummary?.totalEarnings || 0 }} Kč</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-separator />
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label>Zálohy</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-item-label class="text-negative">-{{ filteredSummary?.totalAdvances || 0 }} Kč</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-separator />
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label>Obědy</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-item-label class="text-negative">-{{ filteredSummary?.totalLunches || 0 }} Kč</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-separator />
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label class="text-weight-bold">K výplatě</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-item-label class="text-weight-bold text-h6">
+                  {{ filteredSummary?.balance || 0 }} Kč
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-card>
+      </div>
+      
+      <!-- Záznamy -->
+      <div v-if="summaryTab === 'records'">
+        <q-list bordered separator v-if="filteredRecords.length">
+          <q-item v-for="record in filteredRecords" :key="record.id">
+            <q-item-section>
+              <q-item-label>{{ record.date }}</q-item-label>
+              <q-item-label caption>{{ record.contractName }} - {{ record.jobName }}</q-item-label>
+              <q-item-label caption>{{ formatTime(record.startTime) }} - {{ formatTime(record.endTime) }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-item-label>{{ record.hours }} h</q-item-label>
+              <q-item-label caption>{{ record.earnings }} Kč</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+        <q-card v-else>
+          <q-card-section>
+            <div class="text-center text-grey">Žádné záznamy</div>
+          </q-card-section>
+        </q-card>
+      </div>
+      
+      <!-- Obědy -->
+      <div v-if="summaryTab === 'lunches'">
+        <q-list bordered separator v-if="filteredLunches.length">
+          <q-item v-for="lunch in filteredLunches" :key="lunch.id">
+            <q-item-section>
+              <q-item-label>{{ lunch.date }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-item-label>100 Kč</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+        <q-card v-else>
+          <q-card-section>
+            <div class="text-center text-grey">Žádné obědy</div>
+          </q-card-section>
+        </q-card>
+      </div>
+      
+      <!-- Zálohy -->
+      <div v-if="summaryTab === 'advances'">
+        <q-list bordered separator v-if="filteredAdvances.length">
+          <q-item v-for="advance in filteredAdvances" :key="advance.id">
+            <q-item-section>
+              <q-item-label>{{ advance.date }}</q-item-label>
+              <q-item-label caption v-if="advance.note">{{ advance.note }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-item-label>{{ advance.amount }} Kč</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+        <q-card v-else>
+          <q-card-section>
+            <div class="text-center text-grey">Žádné zálohy</div>
+          </q-card-section>
+        </q-card>
+      </div>
+    </div>
+  `
+});
+```
+
+---
+
+# 🔟 js/components/settings.js
+
+**Popis:** Komponenta nastavení aplikace  
+**Cesta:** `/js/components/settings.js`
+
+```javascript
+// Komponenta pro nastavení
+window.app.component('settings-component', {
+  emits: ['message'],
+  
+  data() {
+    return {
+      apiUrl: localStorage.getItem('apiUrl') || DEFAULT_API_URL
+    }
+  },
+  
+  methods: {
+    saveApiUrl() {
+      if (this.apiUrl && this.apiUrl.trim()) {
+        localStorage.setItem('apiUrl', this.apiUrl.trim());
+        this.$emit('message', 'API URL uložena. Obnovte stránku.');
+      } else {
+        this.$emit('message', 'Zadejte platnou URL');
+      }
+    },
+    
+    resetApiUrl() {
+      this.apiUrl = DEFAULT_API_URL;
+      localStorage.setItem('apiUrl', DEFAULT_API_URL);
+      this.$emit('message', 'API URL obnovena na výchozí');
+    }
+  },
+  
+  template: `
+    <div>
+      <q-card>
+        <q-card-section>
+          <div class="text-h6">Nastavení API</div>
+        </q-card-section>
+        
+        <q-card-section>
+          <q-input
+            v-model="apiUrl"
+            label="API URL"
+            outlined
+            hint="URL vašeho Google Apps Script API"
+          />
+        </q-card-section>
+        
+        <q-card-actions align="right">
+          <q-btn
+            flat
+            label="Obnovit výchozí"
+            @click="resetApiUrl"
+          />
+          <q-btn
+            color="primary"
+            label="Uložit"
+            @click="saveApiUrl"
+            unelevated
+          />
+        </q-card-actions>
+      </q-card>
+      
+      <q-card class="q-mt-md">
+        <q-card-section>
+          <div class="text-h6">O aplikaci</div>
+          <div class="text-body2 q-mt-sm">
+            Evidence práce 2026<br>
+            Verze: 2.0 (modulární)
+          </div>
+        </q-card-section>
+      </q-card>
+    </div>
+  `
+});
+```
+
+---
+
+# 1️⃣1️⃣ js/components/admin/worker-detail.js
+
+**Popis:** Komponenta detailu pracovníka pro admina  
+**Cesta:** `/js/components/admin/worker-detail.js`
+
+```javascript
+// Komponenta pro detail pracovníka (admin)
+window.app.component('worker-detail-component', {
+  props: ['workerId', 'allSummary', 'allRecords', 'allAdvances'],
+  emits: ['back', 'message'],
+  
+  computed: {
+    worker() {
+      return this.allSummary.find(w => w.id === this.workerId);
+    },
+    
+    workerRecords() {
+      return this.allRecords.filter(r => r.workerId === this.workerId);
+    },
+    
+    workerAdvances() {
+      return this.allAdvances.filter(a => a.workerId === this.workerId);
+    }
+  },
+  
+  template: `
+    <div v-if="worker">
+      <q-card class="q-mb-md">
+        <q-card-section>
+          <div class="row items-center">
+            <q-btn flat round icon="arrow_back" @click="$emit('back')" />
+            <div class="text-h6 q-ml-md">{{ worker.name }}</div>
+          </div>
+        </q-card-section>
+      </q-card>
+      
+      <!-- Finanční přehled -->
+      <q-card class="q-mb-md">
+        <q-card-section>
+          <div class="text-h6 q-mb-md">Finanční přehled</div>
+          
+          <q-list>
+            <q-item>
+              <q-item-section>
+                <q-item-label>Celkem hodin</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-item-label>{{ worker.totalHours || 0 }} h</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-separator />
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label>Celkem výdělek</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-item-label class="text-positive">{{ worker.totalEarnings || 0 }} Kč</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-separator />
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label>Zálohy</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-item-label class="text-negative">-{{ worker.totalAdvances || 0 }} Kč</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-separator />
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label class="text-weight-bold">K výplatě</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-item-label class="text-weight-bold text-h6">
+                  {{ worker.balance || 0 }} Kč
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-card-section>
+      </q-card>
+      
+      <!-- Záznamy -->
+      <q-card class="q-mb-md">
+        <q-card-section>
+          <div class="text-h6">Záznamy práce</div>
+        </q-card-section>
+        
+        <q-list bordered separator v-if="workerRecords.length">
+          <q-item v-for="record in workerRecords" :key="record.id">
+            <q-item-section>
+              <q-item-label>{{ record.date }}</q-item-label>
+              <q-item-label caption>{{ record.contractName }} - {{ record.jobName }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-item-label>{{ record.hours }} h</q-item-label>
+              <q-item-label caption>{{ record.earnings }} Kč</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+        
+        <q-card-section v-else>
+          <div class="text-center text-grey">Žádné záznamy</div>
+        </q-card-section>
+      </q-card>
+      
+      <!-- Zálohy -->
+      <q-card>
+        <q-card-section>
+          <div class="text-h6">Zálohy</div>
+        </q-card-section>
+        
+        <q-list bordered separator v-if="workerAdvances.length">
+          <q-item v-for="advance in workerAdvances" :key="advance.id">
+            <q-item-section>
+              <q-item-label>{{ advance.date }}</q-item-label>
+              <q-item-label caption v-if="advance.note">{{ advance.note }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-item-label>{{ advance.amount }} Kč</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+        
+        <q-card-section v-else>
+          <div class="text-center text-grey">Žádné zálohy</div>
+        </q-card-section>
+      </q-card>
+    </div>
+  `
+});
+```
+
+---
+
+# 1️⃣2️⃣ js/components/admin/day-view.js
+
+**Popis:** Komponenta přehledu dne pro admina  
+**Cesta:** `/js/components/admin/day-view.js`
+
+```javascript
+// Komponenta pro přehled dne
+window.app.component('day-view-component', {
+  props: ['allRecords', 'contracts', 'jobs', 'loading'],
+  emits: ['message', 'reload'],
+  
+  data() {
+    return {
+      adminDayView: 'today',
+      selectedDate: getTodayDate(),
+      dayRecords: [],
+      editDialog: false,
+      editingRecord: null,
+      editForm: {
+        date: '',
+        startTime: '',
+        endTime: '',
+        contractId: null,
+        jobId: null
+      }
+    }
+  },
+  
+  computed: {
+    displayDate() {
+      if (this.adminDayView === 'today') {
+        return getTodayDate();
+      } else if (this.adminDayView === 'yesterday') {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        return yesterday.toISOString().split('T')[0];
+      } else {
+        return this.selectedDate;
+      }
+    },
+    
+    filteredRecords() {
+      return this.allRecords.filter(r => r.date === this.displayDate);
+    }
+  },
+  
+  methods: {
+    openEditDialog(record) {
+      this.editingRecord = record;
+      this.editForm = {
+        date: record.date,
+        startTime: record.startTime,
+        endTime: record.endTime,
+        contractId: record.contractId,
+        jobId: record.jobId
+      };
+      this.editDialog = true;
+    },
+    
+    async saveEdit() {
+      if (!this.editingRecord) return;
+      
+      try {
+        const response = await apiCall('updateRecord', {
+          recordId: this.editingRecord.id,
+          ...this.editForm
+        });
+        
+        if (response.success) {
+          this.$emit('message', 'Záznam upraven');
+          this.$emit('reload');
+          this.editDialog = false;
+        } else {
+          this.$emit('message', response.message || 'Chyba při úpravě záznamu');
+        }
+      } catch (error) {
+        console.error('Update record error:', error);
+        this.$emit('message', 'Chyba při úpravě záznamu');
+      }
+    },
+    
+    async deleteRecord(recordId) {
+      if (!confirm('Opravdu smazat tento záznam?')) return;
+      
+      try {
+        const response = await apiCall('
