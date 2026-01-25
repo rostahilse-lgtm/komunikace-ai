@@ -1,0 +1,572 @@
+// KONFIGURACE
+const SPREADSHEET_ID = '1OMSWRrn2aBHMItjx4Vu0Syn4PII8F1uw-GSWEuaoZGo';
+const SHEET_NAMES = {
+  WORKERS: 'pracovníci',
+  CONTRACTS: 'zakázky',
+  JOBS: 'práce',
+  RECORDS: 'záznamy',
+  ADVANCES: 'zálohy',
+  RATES: 'hodinové sazby',
+  LUNCH_PRICES: 'ceny obědů'
+};
+
+// TEST ENDPOINT (GET)
+function doGet(e) {
+  return ContentService
+    .createTextOutput(JSON.stringify({ 
+      status: 'ok', 
+      message: 'API funguje - používej POST requesty',
+      version: '2.0'
+    }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// HLAVNÍ ROUTING (POST)
+function doPost(e) {
+  try {
+    const params = JSON.parse(e.postData.contents);
+    const action = params.action;
+    
+    let result;
+    
+    switch(action) {
+      case 'get': 
+        result = getData(params); 
+        break;
+      case 'saverecord': 
+        result = addRecord(params); 
+        break;
+      case 'savelunch': 
+        result = setPaymentRequestLunch(params); 
+        break;
+      case 'saveadvance': 
+        result = setPaymentRequest(params); 
+        break;
+      case 'getsummary': 
+        result = getWorkerFinances(params); 
+        break;
+      case 'getrecords': 
+        result = getWorkerRecords(params); 
+        break;
+      case 'getadvances': 
+        result = getWorkerAdvances(params); 
+        break;
+      case 'getallrecords': 
+        result = getAllRecords(params); 
+        break;
+      case 'getalladvances': 
+        result = getAllAdvances(params); 
+        break;
+      case 'getallsummary': 
+        result = getAllSummary(params); 
+        break;
+      case 'getdayrecords': 
+        result = getDayRecords(params); 
+        break;
+      case 'updaterecord': 
+        result = updateRecord(params); 
+        break;
+      case 'deleterecord': 
+        result = deleteRecord(params); 
+        break;
+      case 'getcontractkm': 
+        result = getContractKm(params); 
+        break;
+      case 'checktodaytrip': 
+        result = checkTodayTrip(params); 
+        break;
+      default: 
+        result = { code: '100', error: 'Neznámá akce: ' + action, data: null };
+    }
+    
+    return ContentService
+      .createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ 
+        code: '999', 
+        error: error.toString(), 
+        data: null 
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// ČTENÍ DAT
+function getData(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const type = params.type;
+    let sheet, data;
+   
+    switch(type) {
+      case 'workers':
+        sheet = ss.getSheetByName(SHEET_NAMES.WORKERS);
+        const wLastRow = sheet.getLastRow();
+        if (wLastRow > 1) {
+          data = sheet.getRange(2, 1, wLastRow - 1, 4).getValues();
+        } else {
+          data = [];
+        }
+        break;
+       
+      case 'contracts':
+        sheet = ss.getSheetByName(SHEET_NAMES.CONTRACTS);
+        const cLastRow = sheet.getLastRow();
+        if (cLastRow > 1) {
+          data = sheet.getRange(2, 1, cLastRow - 1, 4).getValues()
+            .filter(row => row[2] === 'Y');
+        } else {
+          data = [];
+        }
+        break;
+       
+      case 'jobs':
+        sheet = ss.getSheetByName(SHEET_NAMES.JOBS);
+        const jLastRow = sheet.getLastRow();
+        if (jLastRow > 1) {
+          data = sheet.getRange(2, 1, jLastRow - 1, 3).getValues()
+            .filter(row => row[2] === 'Y');
+        } else {
+          data = [];
+        }
+        break;
+       
+      case 'records':
+        sheet = ss.getSheetByName(SHEET_NAMES.RECORDS);
+        const rLastRow = sheet.getLastRow();
+        if (rLastRow > 1) {
+          data = sheet.getRange(2, 1, rLastRow - 1, 14).getValues();
+        } else {
+          data = [];
+        }
+        break;
+       
+      default:
+        return { code: '101', error: 'Neplatný typ: ' + type, data: null };
+    }
+   
+    return { code: '000', error: '', data: data };
+  } catch (error) {
+    return { code: '999', error: error.toString(), data: null };
+  }
+}
+
+function getWorkerRecords(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const idWorker = params.id_worker;
+    const records = ss.getSheetByName(SHEET_NAMES.RECORDS).getDataRange().getValues();
+    const filtered = [];
+   
+    for (let i = 1; i < records.length; i++) {
+      if (String(records[i][1]) === String(idWorker)) {
+        filtered.push(records[i]);
+      }
+    }
+   
+    return { code: '000', error: '', data: filtered.reverse().slice(0, 30) };
+  } catch (error) {
+    return { code: '999', error: error.toString(), data: null };
+  }
+}
+
+function getWorkerAdvances(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const idWorker = params.id_worker;
+    const advances = ss.getSheetByName(SHEET_NAMES.ADVANCES).getDataRange().getValues();
+    const filtered = [];
+   
+    for (let i = 1; i < advances.length; i++) {
+      if (String(advances[i][0]) === String(idWorker)) {
+        filtered.push(advances[i]);
+      }
+    }
+   
+    return { code: '000', error: '', data: filtered.reverse().slice(0, 30) };
+  } catch (error) {
+    return { code: '999', error: error.toString(), data: null };
+  }
+}
+
+function getAllRecords(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const records = ss.getSheetByName(SHEET_NAMES.RECORDS).getDataRange().getValues();
+    const data = [];
+    
+    for (let i = 1; i < records.length; i++) {
+      data.push(records[i]);
+    }
+   
+    return { code: '000', error: '', data: data.reverse() };
+  } catch (error) {
+    return { code: '999', error: error.toString(), data: null };
+  }
+}
+
+function getAllAdvances(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const advances = ss.getSheetByName(SHEET_NAMES.ADVANCES).getDataRange().getValues();
+    const data = [];
+    
+    for (let i = 1; i < advances.length; i++) {
+      data.push(advances[i]);
+    }
+   
+    return { code: '000', error: '', data: data.reverse() };
+  } catch (error) {
+    return { code: '999', error: error.toString(), data: null };
+  }
+}
+
+function getDayRecords(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const dateStr = params.date;
+    const parts = dateStr.split('. ');
+    const targetDate = new Date(parts[2], parts[1] - 1, parts[0]);
+    const nextDay = new Date(targetDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+   
+    const records = ss.getSheetByName(SHEET_NAMES.RECORDS).getDataRange().getValues();
+    const filtered = [];
+   
+    for (let i = 1; i < records.length; i++) {
+      const recordDate = new Date(records[i][4]);
+      if (recordDate >= targetDate && recordDate < nextDay) {
+        filtered.push(records[i]);
+      }
+    }
+   
+    return { code: '000', error: '', data: filtered };
+  } catch (error) {
+    return { code: '999', error: error.toString(), data: null };
+  }
+}
+
+// FINANČNÍ VÝPOČTY
+function getWorkerFinances(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const idWorker = params.id_worker;
+    const records = ss.getSheetByName(SHEET_NAMES.RECORDS).getDataRange().getValues();
+    const advances = ss.getSheetByName(SHEET_NAMES.ADVANCES).getDataRange().getValues();
+   
+    let totalEarnings = 0;
+    let totalPaid = 0;
+   
+    for (let i = 1; i < records.length; i++) {
+      if (String(records[i][1]) === String(idWorker)) {
+        const rate = parseFloat(records[i][2]) || 0;
+        const hours = parseFloat(records[i][7]) || 0;
+        totalEarnings += (rate * hours);
+      }
+    }
+   
+    for (let i = 1; i < advances.length; i++) {
+      if (String(advances[i][0]) === String(idWorker)) {
+        totalPaid += parseFloat(advances[i][4]) || 0;
+      }
+    }
+   
+    return { 
+      code: '000', 
+      error: '', 
+      data: {
+        totalEarnings: Math.round(totalEarnings),
+        totalPaid: Math.round(totalPaid),
+        balance: Math.round(totalEarnings - totalPaid)
+      }
+    };
+  } catch (error) {
+    return { code: '999', error: error.toString(), data: null };
+  }
+}
+
+function getAllSummary(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const workersData = ss.getSheetByName(SHEET_NAMES.WORKERS).getDataRange().getValues();
+    const records = ss.getSheetByName(SHEET_NAMES.RECORDS).getDataRange().getValues();
+    const advances = ss.getSheetByName(SHEET_NAMES.ADVANCES).getDataRange().getValues();
+    const summary = [];
+   
+    for (let w = 1; w < workersData.length; w++) {
+      const workerId = workersData[w][0];
+      const workerName = workersData[w][1];
+      let totalEarnings = 0;
+      let totalPaid = 0;
+     
+      for (let i = 1; i < records.length; i++) {
+        if (String(records[i][1]) === String(workerId)) {
+          const rate = parseFloat(records[i][2]) || 0;
+          const hours = parseFloat(records[i][7]) || 0;
+          totalEarnings += (rate * hours);
+        }
+      }
+     
+      for (let i = 1; i < advances.length; i++) {
+        if (String(advances[i][0]) === String(workerId)) {
+          totalPaid += parseFloat(advances[i][4]) || 0;
+        }
+      }
+     
+      summary.push({
+        id: workerId,
+        name: workerName,
+        totalEarnings: Math.round(totalEarnings),
+        totalPaid: Math.round(totalPaid),
+        balance: Math.round(totalEarnings - totalPaid)
+      });
+    }
+   
+    return { code: '000', error: '', data: summary };
+  } catch (error) {
+    return { code: '999', error: error.toString(), data: null };
+  }
+}
+
+// OPERACE SE ZÁZNAMY
+function addRecord(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheetRecords = ss.getSheetByName(SHEET_NAMES.RECORDS);
+    const idContract = params.id_contract;
+    const idWorker = params.id_worker;
+    const idJob = params.id_job;
+    const timeFr = parseInt(params.time_fr);
+    const timeTo = parseInt(params.time_to);
+    const note = params.note || '';
+    const recordDate = new Date(timeFr);
+    const kmJednosmer = parseFloat(params.km_jednosmer) || 0;
+    const kmCelkem = parseFloat(params.km_celkem) || 0;
+    const kmRucne = params.km_rucne || 'N';
+   
+    const nameContract = getNameById(ss, SHEET_NAMES.CONTRACTS, idContract);
+    const nameJob = getNameById(ss, SHEET_NAMES.JOBS, idJob);
+    const nameWorker = getNameById(ss, SHEET_NAMES.WORKERS, idWorker);
+    const rate = getWorkerRate(ss, idWorker, recordDate);
+    
+    const hours = (timeTo - timeFr) / 3600000;
+    const dateTimeFr = Utilities.formatDate(new Date(timeFr), 'GMT+1', 'dd. MM. yyyy HH:mm');
+    const dateTimeTo = Utilities.formatDate(new Date(timeTo), 'GMT+1', 'dd. MM. yyyy HH:mm');
+   
+    sheetRecords.appendRow([
+      nameContract,
+      idWorker,
+      rate,
+      nameJob,
+      timeFr,
+      timeTo,
+      nameWorker,
+      hours,
+      note,
+      dateTimeFr,
+      dateTimeTo,
+      kmJednosmer,
+      kmCelkem,
+      kmRucne
+    ]);
+   
+    return { code: '000', error: '', data: null };
+  } catch (error) {
+    return { code: '999', error: error.toString(), data: null };
+  }
+}
+
+function updateRecord(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SHEET_NAMES.RECORDS);
+    const rowIndex = parseInt(params.row_index);
+    const idContract = params.id_contract;
+    const idJob = params.id_job;
+    const timeFr = parseInt(params.time_fr);
+    const timeTo = parseInt(params.time_to);
+    const note = params.note || '';
+    const kmJednosmer = parseFloat(params.km_jednosmer) || 0;
+    const kmCelkem = parseFloat(params.km_celkem) || 0;
+    const kmRucne = params.km_rucne || 'N';
+   
+    const nameContract = getNameById(ss, SHEET_NAMES.CONTRACTS, idContract);
+    const nameJob = getNameById(ss, SHEET_NAMES.JOBS, idJob);
+    
+    const hours = (timeTo - timeFr) / 3600000;
+    const dateTimeFr = Utilities.formatDate(new Date(timeFr), 'GMT+1', 'dd. MM. yyyy HH:mm');
+    const dateTimeTo = Utilities.formatDate(new Date(timeTo), 'GMT+1', 'dd. MM. yyyy HH:mm');
+   
+    const row = rowIndex + 2;
+    sheet.getRange(row, 1).setValue(nameContract);
+    sheet.getRange(row, 4).setValue(nameJob);
+    sheet.getRange(row, 5).setValue(timeFr);
+    sheet.getRange(row, 6).setValue(timeTo);
+    sheet.getRange(row, 8).setValue(hours);
+    sheet.getRange(row, 9).setValue(note);
+    sheet.getRange(row, 10).setValue(dateTimeFr);
+    sheet.getRange(row, 11).setValue(dateTimeTo);
+    sheet.getRange(row, 12).setValue(kmJednosmer);
+    sheet.getRange(row, 13).setValue(kmCelkem);
+    sheet.getRange(row, 14).setValue(kmRucne);
+   
+    return { code: '000', error: '', data: null };
+  } catch (error) {
+    return { code: '999', error: error.toString(), data: null };
+  }
+}
+
+function deleteRecord(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SHEET_NAMES.RECORDS);
+    const rowIndex = parseInt(params.row_index);
+    sheet.deleteRow(rowIndex + 2);
+    return { code: '000', error: '', data: null };
+  } catch (error) {
+    return { code: '999', error: error.toString(), data: null };
+  }
+}
+
+// OPERACE S PLATBAMI
+function setPaymentRequestLunch(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const time = parseInt(params.time);
+    const lunchDate = new Date(time);
+    
+    const price = getLunchPrice(ss, lunchDate);
+    const dateTime = Utilities.formatDate(lunchDate, 'GMT+1', 'dd. MM. yyyy HH:mm');
+   
+    ss.getSheetByName(SHEET_NAMES.ADVANCES).appendRow([
+      params.id_worker,
+      time,
+      params.name_worker,
+      dateTime,
+      price,
+      'oběd'
+    ]);
+   
+    return { code: '000', error: '', data: null };
+  } catch (error) {
+    return { code: '999', error: error.toString(), data: null };
+  }
+}
+
+function setPaymentRequest(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const time = parseInt(params.time);
+    const dateTime = Utilities.formatDate(new Date(time), 'GMT+1', 'dd. MM. yyyy HH:mm');
+   
+    ss.getSheetByName(SHEET_NAMES.ADVANCES).appendRow([
+      params.id_worker,
+      time,
+      params.name_worker,
+      dateTime,
+      parseFloat(params.payment),
+      params.payment_reason
+    ]);
+   
+    return { code: '000', error: '', data: null };
+  } catch (error) {
+    return { code: '999', error: error.toString(), data: null };
+  }
+}
+
+// POMOCNÉ FUNKCE
+function getNameById(ss, sheetName, id) {
+  const data = ss.getSheetByName(sheetName).getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(id)) {
+      return data[i][1];
+    }
+  }
+  return id;
+}
+
+function getWorkerRate(ss, idWorker, recordDate) {
+  const ratesData = ss.getSheetByName(SHEET_NAMES.RATES).getDataRange().getValues();
+  for (let i = 1; i < ratesData.length; i++) {
+    if (String(ratesData[i][0]) === String(idWorker)) {
+      const dFrom = new Date(ratesData[i][3]);
+      const dTo = new Date(ratesData[i][4]);
+      if (recordDate >= dFrom && recordDate <= dTo) {
+        return ratesData[i][2];
+      }
+    }
+  }
+  return 0;
+}
+
+function getLunchPrice(ss, lunchDate) {
+  const pricesData = ss.getSheetByName(SHEET_NAMES.LUNCH_PRICES).getDataRange().getValues();
+  for (let i = 1; i < pricesData.length; i++) {
+    const dFrom = new Date(pricesData[i][1]);
+    const dTo = new Date(pricesData[i][2]);
+    if (lunchDate >= dFrom && lunchDate <= dTo) {
+      return pricesData[i][0];
+    }
+  }
+  return 0;
+}
+
+// FUNKCE PRO KILOMETRY
+function getContractKm(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const contractsSheet = ss.getSheetByName(SHEET_NAMES.CONTRACTS);
+    const data = contractsSheet.getDataRange().getValues();
+    const contractId = params.id_contract;
+    
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(contractId)) {
+        const km = data[i][3] || 0;
+        return { code: '000', error: '', data: { km: km } };
+      }
+    }
+    
+    return { code: '000', error: '', data: { km: 0 } };
+  } catch (error) {
+    return { code: '999', error: error.toString(), data: null };
+  }
+}
+
+function checkTodayTrip(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const recordsSheet = ss.getSheetByName(SHEET_NAMES.RECORDS);
+    const data = recordsSheet.getDataRange().getValues();
+    const contractId = params.id_contract;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayMs = today.getTime();
+    
+    for (let i = 1; i < data.length; i++) {
+      const recordDate = new Date(data[i][4]);
+      recordDate.setHours(0, 0, 0, 0);
+      const recordDateMs = recordDate.getTime();
+      const recordContract = String(data[i][0]);
+      const recordKm = data[i][12] || 0;
+      
+      if (recordDateMs === todayMs && recordContract === contractId && recordKm > 0) {
+        return { 
+          code: '000', 
+          error: '', 
+          data: { 
+            exists: true, 
+            km: recordKm,
+            worker: data[i][6]
+          }
+        };
+      }
+    }
+    
+    return { code: '000', error: '', data: { exists: false } };
+  } catch (error) {
+    return { code: '999', error: error.toString(), data: null };
+  }
+}
