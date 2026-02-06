@@ -1,0 +1,32 @@
+# === HLAVNÍ SOUBORY ===
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/index.html
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/admin.html
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/styles.css
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/manifest.json
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/README.md
+
+# === JS - ROOT ===
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/js/config.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/js/utils.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/js/api.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/js/main.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/js/admin-main.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/js/notifications.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/js/service-worker.js
+
+# === JS - KOMPONENTY ===
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/js/components/login.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/js/components/home.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/js/components/summary.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/js/components/settings.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/js/components/kilometers.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/js/components/stavebni-denik.js
+
+# === JS - ADMIN KOMPONENTY ===
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/js/components/admin/admin.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/js/components/admin/day-overview.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/js/components/admin/statistics.js
+
+# === OBRÁZKY ===
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/icon-192.png
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/main/icon-512.png
