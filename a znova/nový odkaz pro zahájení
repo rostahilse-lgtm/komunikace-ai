@@ -1,0 +1,56 @@
+Ahoj! Načti prosím všechny aktuální soubory projektu:
+
+# === HLAVNÍ SOUBORY ===
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/refs/heads/main/index.html
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/refs/heads/main/admin.html
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/refs/heads/main/styles.css
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/refs/heads/main/manifest.json
+
+# === JS - ROOT ===
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/refs/heads/main/js/config.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/refs/heads/main/js/utils.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/refs/heads/main/js/api.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/refs/heads/main/js/main.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/refs/heads/main/js/admin-main.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/refs/heads/main/js/notifications.js
+
+# === JS - KOMPONENTY ===
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/refs/heads/main/js/components/login.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/refs/heads/main/js/components/home.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/refs/heads/main/js/components/summary.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/refs/heads/main/js/components/settings.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/refs/heads/main/js/components/stavebni-denik.js
+
+# === JS - ADMIN KOMPONENTY ===
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/refs/heads/main/js/components/admin/admin.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/refs/heads/main/js/components/admin/day-overview.js
+https://raw.githubusercontent.com/rostahilse-lgtm/evidence-prace/refs/heads/main/js/components/admin/statistics.js
+
+# === CO CHCEME UDĚLAT ===
+Projekt je Evidence práce 2026 - Vue.js + Quasar, napojeno na Google Apps Script.
+Vercel nasazuje z větve main automaticky.
+
+PRAVIDLA:
+- Nic nemaž bez souhlasu
+- Vždy řekni co přesně chceš změnit a počkej na souhlas
+- Nic si nevymýšlej, mluv pravdu
+
+ÚKOLY V POŘADÍ:
+1. Vytvořit větev "dev" na GitHubu pro bezpečné testování
+   - main = produkce pro kluky (evidence-prace.vercel.app)
+   - dev = testování (dev-evidence-prace.vercel.app)
+   
+2. Opravit Přehledy (summary) - pracovníci nevidí svoje záznamy
+   - main.js volá getrecords a getadvances se source parametrem
+   - GAS (kod.gs) možná nepodporuje source parametr → potřeba zkontrolovat
+   - kod.gs není na GitHubu, je v Google Apps Script editoru
+   
+3. Rozcestník NOVÉ/HIST/VŠE - přepínač je hotový v settings.js
+   - ale getrecords/getadvances v GAS musí podporovat source parametr
+   
+4. Sloučit index.html a admin.html do jedné apky (FÁZE 3 - later)
+
+DŮLEŽITÉ:
+- Vždy načítej soubory přes refs/heads/main (ne jen /main/)
+- Po každé změně začni nový rozhovor pro čistou cache
+- kod.gs je klíčový soubor - požádej uživatele aby ho zkopíroval
