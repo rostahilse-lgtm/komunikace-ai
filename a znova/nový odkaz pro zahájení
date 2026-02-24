@@ -36,9 +36,7 @@ PRAVIDLA:
 - Nic si nevymýšlej, mluv pravdu
 
 ÚKOLY V POŘADÍ:
-1. Vytvořit větev "dev" na GitHubu pro bezpečné testování
-   - main = produkce pro kluky (evidence-prace.vercel.app)
-   - dev = testování (dev-evidence-prace.vercel.app)
+
    
 2. Opravit Přehledy (summary) - pracovníci nevidí svoje záznamy
    - main.js volá getrecords a getadvances se source parametrem
