@@ -1,0 +1,29 @@
+Jdi na github.com → tvůj repozitář evidence-prace
+Klikni na "Pull requests" (záložka nahoře)
+Klikni na zelené tlačítko "New pull request"
+Nastav:
+
+base: main
+compare: dev
+
+
+Klikni "Create pull request"
+Dej mu název (třeba Opravy Rozpracované v2026-03-04) a klikni znovu "Create pull request"
+Pak klikni na zelené "Merge pull request" → "Confirm merge"
+
+Hotovo — Vercel to automaticky zachytí a nasadí.
+
+Výborně, jsi přesně tam kde má být! Teď už jen:
+
+Scrolluj dolů na té stránce až uvidíš zelené tlačítko "Merge pull request"
+Klikni na něj
+Klikni na "Confirm merge"
+
+Hotovo — Vercel automaticky nasadí novou verzi za pár minut.
+
+Problém — je tam konflikt v souboru js/components/admin/admin.js. Proto je tlačítko Merge zašedlé.
+Nejjednodušší řešení — klikni na "web editor" (odkaz v textu nahoře "Use the web editor"), GitHub ti ukáže konflikt přímo v prohlížeči a můžeš ho tam vyřešit.
+
+Vidím konflikt — jsou tam jen rozdíly v komentářích v záhlaví souboru. Dev větev má novější verzi.
+U každého konfliktu klikni na "Accept current change" (to je dev verze — novější).
+Jsou tam 3 konflikty — u všech tří klikni "Accept current change". Pak klikni "Mark as resolved" nahoře a pak merge půjde dokončit.
