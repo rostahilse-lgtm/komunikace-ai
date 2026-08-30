@@ -1,0 +1,184 @@
+# 📋 SOUHRN PRO NOVÉHO AI KOLEGU — Evidence práce 2026
+
+**Datum:** 30.8.2026
+**Projekt:** Evidence práce — Google Apps Script (backend) + Vue.js/Quasar (frontend)
+**Repo:** GitHub `rostahilse-lgtm/evidence-prace`, větve `main` (produkce) a `dev` (testovací)
+**Hosting:** Vercel (automaticky nasazuje obě větve zvlášť)
+**Google Sheet ID:** `1OMSWRrn2aBHMItjx4Vu0Syn4PII8F1uw-GSWEuaoZGo`
+
+---
+
+## 🗂️ STRUKTURA PROJEKTU
+
+```
+index.html
+js/
+  config.js, utils.js, api.js
+  main.js                          ← hlavní Vue app (window.app)
+  components/
+    login.js
+    home.js                        ← Domů: směna/oběd/záloha/objednat
+    summary.js
+    settings.js
+    admin/
+      admin.js                     ← Admin: pracovníci, přehled dne, zálohy, nástroje
+      statistics.js                ← Statistiky (zatím neupravováno)
+      kontrola.js                  ← NOVÉ (viz níže) — kontrola migrace dat
+    stavebni-denik.js
+Code.gs (backend, Google Apps Script)
+```
+
+**Google Sheet listy:** pracovníci, zakázky, práce, místo, záznamy, zálohy, hodinové sazby,
+ceny obědů, záznamy_historie, zálohy_historie, obedy_objednavky
+
+---
+
+## ✅ CO JSME SPOLEČNĚ UDĚLALI (v této konverzaci)
+
+### 1. Oprava duplicity/špatného zápisu do `updateRecord` (dřívější část konverzace)
+Historie — vyřešeno dřív, funguje.
+
+### 2. Oprava řazení duplikátu v Přehledu dne (`admin.js`)
+`saveDuplicate()` nyní posílá `insert_after_date`, takže se kopie vloží chronologicky
+za poslední záznam daného dne místo na konec celé tabulky. **Nasazeno, funguje.**
+
+### 3. Nová funkce "Kontrola dat" (`kontrola.js` + `kod.gs`)
+- Nový soubor `js/components/admin/kontrola.js` — read-only přehled porovnávající
+  záznamy v listu "záznamy" (nová appka) vs "záznamy_historie" (stará appka) po
+  pracovníkovi a dni. Zvýrazňuje konflikty (den v obou listech).
+- V `kod.gs` přidány endpointy `migratepreview` a `migratecopy` — **pouze KOPÍRUJÍ**
+  chybějící dny z historie do nové appky, **NIC NEMAŽOU** z historie. Duplicity se
+  automaticky přeskočí. Podporuje volitelný rozsah datumů.
+- V `main.js` přidána záložka "Kontrola dat" v Nástrojích (jen pro admina).
+- V `index.html` přidán script tag pro `kontrola.js`.
+- **STATUS: Otestováno na `dev` větvi, fungovalo (128 konfliktů nalezeno u testu).**
+  Merge do `main` — potvrď, jestli proběhl.
+
+### 4. Oprava bugu s ~24hodinovou směnou (Fido, Jiřík 24.–25.8.)
+**Příčina #1 (opraveno):** `loadShiftState()` v `home.js` obnovovala rozpracovanou
+směnu z localStorage až 7 dní zpátky (`daysAgo < 7`). Když si pracovník zapomněl
+dokončit směnu, appka mu druhý den tiše podstrčila starý čas příchodu, tlačítko
+PŘÍCHOD bylo zablokované a ODCHOD se pak omylem navázal na včerejší začátek.
+→ **Opraveno:** podmínka změněna na `state.date === getTodayDate()` (jen dnešek).
+Nedotýká se to záložky Rozpracované (ta čte data ze serveru, ne z localStorage).
+
+**Příčina #2 (opraveno):** `saveArrival()` v `kod.gs` neměla žádnou kontrolu
+duplicity příchodu — Cloud režim mohl při výpadku/dvojkliku vytvořit dva
+"rozpracováno" řádky se stejným časem.
+→ **Opraveno (verze 2, po korekci):** kontrola duplicity platí **jen v rámci
+stejného dne** (funkce `jeStejnyDen_`). Pokud je nalezený nedokončený řádek
+z jiného dne, NEPOUŽIJE se — vytvoří se nový, starý čeká na doplnění.
+(Původní první verze opravy byla chybná — kontrolovala duplicitu bez ohledu na
+den, což by znovu způsobilo vícedenní směnu. Uživatel na to správně upozornil,
+opraveno.)
+
+**STATUS: Obě opravy nahrané a otestované na `dev`, chovaly se správně
+(29.8. a 30.8. vznikly 2 oddělené řádky, ne sloučené).**
+
+---
+
+## ⚠️ OTEVŘENÉ / NEDOŘEŠENÉ PROBLÉMY
+
+### A) Záložka "Rozpracované" v Domů nefunguje
+- V `home.js` EXISTUJE kód (data, metody `loadNedokoncene`, `zacitDoplnovat`,
+  `ulozitDoplneni`, `doplnForm`...), ale **v šabloně (template) se nepoužívá** —
+  chybí `<q-tab name="nedokoncene">` a odpovídající `<div v-if="currentTab===...">`.
+- V hlavičce `home.js` je ale záznam, že "Rozpracované" bylo přidáno už
+  **v2026-03-01, kolegou/předchozí session, PŘED touto konverzací**.
+- V2026-03-05 proběhl merge, který podle komentáře odstranil "osiřelý duplicitní
+  kód" — pravděpodobně TEHDY se rozbil přechod mezi "Rozpracované v home.js"
+  a "Rozpracované jako samostatná komponenta v Nástrojích".
+- V `main.js` (Nástroje) je registrovaná `<nedokoncene-component>`, ale na testu
+  (dev větev) se v té záložce nic nezobrazovalo (prázdno).
+- **Uživatel tvrdí, že na `main` větvi "Rozpracované" FUNGUJE jako záložka přímo
+  v Domů** (vedle Objednat) — tzn. na `main` je pravděpodobně STARŠÍ/JINÁ verze
+  `home.js`, než na `dev`.
+
+**DALŠÍ KROK:** Porovnat raw `home.js` z `main` vs `dev`, zjistit rozdíl, a podle
+toho buď:
+- A) vrátit "Rozpracované" tab zpátky přímo do `home.js` (jednodušší, ověřeně
+  funkční na main), nebo
+- B) najít/dokončit `nedokoncene.js` jako samostatnou komponentu
+
+**Čekáme na:** raw linky na `home.js` (main), `home.js` (dev), případný
+`nedokoncene.js` (dev), `index.html` (dev) — request byl odeslán, odpověď zatím
+nedorazila.
+
+### B) Kosmetická chyba — číslo řádku v hlášce "Uloženo v tabulce (řádek X)"
+Appka zobrazuje `rowIndex` (interní, počítáno od 0 bez hlavičky), ne skutečné
+číslo řádku v Sheetu. Data se ukládají SPRÁVNĚ (ověřeno), jen popisek pro
+uživatele je zavádějící (o 1 nižší, než fyzický řádek v Sheetu).
+**Priorita: nízká, kosmetická.**
+
+### C) Vylepšení: retry + jasná chybová hláška při výpadku sítě
+Návrh uživatele: pokud se `savearrival`/`updatedeparture`/`saverecord` nepodaří
+uložit do cloudu, appka by měla:
+1. Automaticky zkusit odeslat požadavek znovu (pár pokusů)
+2. Pokud furt nejde, zobrazit jasnou zprávu typu "Nepodařilo se uložit — zkontrolujte
+   připojení k internetu / mobilní data" místo tichého "Uloženo jen lokálně"
+**Priorita: střední, zatím nezapočato.**
+
+### D) Statistiky mají vždy počítat "vše" (nová appka + historie)
+Uživatel chce, aby v `statistics.js` (pro admina, pro účely kontroly) appka vždy
+natáhla data se `source: 'all'`, ne jen podle aktuálního přepínače dataSource.
+**STATUS: Čekáme na raw soubor `statistics.js`, nikdy jsme ho neviděli/needitovali.**
+
+### E) Historická data — plán migrace (kontext)
+Uživatel má několik pracovníků, kteří zapisují nekonzistentně — někdo jen do staré
+appky (záznamy_historie), někdo jen do nové (záznamy), někdo do obou, někdo
+střídavě po dnech. Cíl: doplnit chybějící dny z historie do nové appky (nástroj
+"Kontrola dat" výše toto řeší), **BEZ MAZÁNÍ** historie, dokud si uživatel není
+100% jistý výsledkem. Uživatel má i ruční zálohu (kopíruje si historii/zálohy
+z jiného Google Sheetu, kde běžela stará appka).
+
+---
+
+## 🔑 DŮLEŽITÁ FAKTA / KONVENCE V KÓDU
+
+- **Sloupec P** (`stav`, index 15 v poli) v listu "záznamy" může obsahovat:
+  `''` (prázdné/hotovo), `'nový'`, `'rozpracováno'` (nedokončená směna),
+  `'opraveno'` (upraveno adminem), `'migrace'` (doplněno z historie)
+- `source_sheet` (na konci pole vrácené z `getAllRecords`) rozlišuje
+  `'záznamy'` vs `'záznamy_historie'`
+- Zálohy nemají status sloupec, jen 6 sloupců: id_worker, time, name_worker,
+  dateTime, payment, reason (+ 7. sloupec 'migrace' u migrovaných záznamů)
+- `row_index` v API je vždy **0-based bez hlavičky** (skutečný řádek v Sheetu
+  = `row_index + 1` nebo `+2` podle konkrétní funkce — POZOR, není to
+  jednotné, ověřovat vždy v konkrétní funkci!)
+- Časy (`time_fr`, `time_to`) jsou v **milisekundách** (Unix timestamp)
+- Timezone: `Europe/Prague` (opraveno z dřívějšího chybného `GMT+1`)
+- Cloud režim (`cloudShift` v localStorage) — když zapnutý, PŘÍCHOD/ODCHOD
+  se ukládají rovnou do Sheetu (ne až při "Uložit směnu")
+
+---
+
+## 💬 STYL KOMUNIKACE S TÍMTO UŽIVATELEM (důležité!)
+
+- **Nikdy neposílat kód, dokud se explicitně nedomluvíme, co a proč měnit**
+  (uživatel to několikrát zdůraznil — "nepiš kod dokud nepřijdeme co s tím")
+- **Nikdy neměnit nic, co funguje** — jen přidávat/opravovat přesně to, na čem
+  se domluvíme
+- Do hlavičky každého upraveného souboru **vždy přidat datovaný komentář**
+  s vysvětlením změny (styl `// v2026-XX-XX - OPRAVA: ...`), stejně jako to
+  dělal(i) předchozí autor(ři) souboru
+- Posílat **VŽDY kompletní soubor** (ne jen fragment), protože uživatel kopíruje
+  celý obsah do GitHubu
+- Testuje se vždy nejdřív na `dev` větvi (Vercel preview URL:
+  `evidence-prace-git-dev-rostahilses-projects.vercel.app`), pak merge do `main`
+- Uživatel není programátor — vysvětlovat věcně, srozumitelně, bez zbytečného
+  žargonu, ale přesně
+
+---
+
+## 📞 TESTOVACÍ ÚDAJE
+
+- Testovací přihlašovací kód: `363236` (Lulu, admin)
+- API URL je v `js/config.js` (nebylo nikdy zobrazeno v této konverzaci —
+  pokud potřeba, vyžádat)
+
+---
+
+*Konec souhrnu. Pokud konverzace skončí, nový AI asistent by měl:*
+*1. Přečíst si tento dokument*
+*2. Vyžádat si aktuální raw soubory podle bodu "OTEVŘENÉ PROBLÉMY" výše*
+*3. Pokračovat bodem A) — porovnání home.js main vs dev*
