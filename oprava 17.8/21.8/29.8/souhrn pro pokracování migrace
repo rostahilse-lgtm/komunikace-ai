@@ -1,0 +1,131 @@
+# 📋 SOUHRN PRO POKRAČOVÁNÍ — Evidence práce 2026
+
+**Datum:** 15.9.2026
+**Stav appky:** ✅ FUNGUJE, nic není rozbité, žádná otevřená akce nečeká
+
+---
+
+## ✅ CO JE HOTOVO A NASAZENO (dev větev, testováno funkčně)
+
+1. **home.js** — oprava 7denního bugu (24h směna), retry + trvalá chybová hláška
+   při výpadku připojení (Příchod/Odchod/Uložit směnu)
+2. **nedokoncene.js** — NOVÝ soubor, Rozpracované přesunuto sem z home.js,
+   opraven index rowIndex (r[17], ne r[16])
+3. **index.html** — přidány script tagy pro nedokoncene.js, kontrola.js
+4. **main.js** — přidána záložka "Kontrola dat" v Nástrojích (jen admin)
+5. **admin.js** —
+   - saveDuplicate: chronologické řazení (insert_after_date)
+   - nová záložka "Nedokončené" (napříč všemi pracovníky, ne jen dnešek)
+   - dialog doplnění: výběr kolegy ze stejného dne, "Opsat vše"
+   - OPRAVA: hledání pracovníka podle ID (ne jen jména) — jméno se
+     někdy nepřesně shodovalo a blokovalo uložení
+   - NOVÉ: tlačítko Smazat v Přehledu dne
+6. **statistics.js** —
+   - vždy načítá `source:'all'` (nová appka + historie), nezávisle na
+     globálním přepínači
+   - opraveno chybějící `isAdmin` v props (filtry Místa/Pracovníci se
+     nezobrazovaly)
+   - opraveny pády při prázdných hodnotách (`.toFixed` na nedokončené směně)
+   - vlastní `formatTimeRange` (nezávisle na chybějící globální funkci)
+7. **kod.gs** —
+   - `migratepreview` / `migratecopy` — bezpečná migrace (JEN KOPÍRUJE
+     chybějící dny z historie do nové appky, NIC NEMAŽE)
+   - `saveArrival` — kontrola duplicity příchodu v rámci STEJNÉHO DNE
+     (ne napříč dny — to by způsobilo stejný 24h bug znovu)
+8. **kontrola.js** — 3 záložky:
+   - **Přehled** — porovnání nová appka vs. historie po dnech, teď i s
+     tlačítky **Smazat NOVOU / Smazat HISTORII** u konfliktů
+   - **Migrace** — Náhled + Provést (bezpečné, jen doplňuje)
+   - **Oprava přiřazení** — NOVÉ: vyber pracovníka → najde záznamy, kde
+     se jeho zakázka LIŠÍ od většinové zakázky kolegů s PŘEKRÝVAJÍCÍM SE
+     ČASEM ten den (ne jen podobným začátkem — kvůli cestujícím jako
+     Fido). Rovnou navrhne většinovou zakázku nebo lze vybrat kolegu.
+
+---
+
+## ⏳ ROZDĚLANÉ / ČEKÁ SE
+
+### Migrace historie → nová appka — ČEKÁ NA TEST V KOPII
+**Kontext:** Uživatel chce migraci (viz `kod.gs` migratepreview/migratecopy)
+nejdřív otestovat v **kopii Google Sheetu**, ne rovnou v ostrém, i když je
+migrace navržená bezpečně (jen přidává, nikdy nemaže).
+
+**Co je hotové:**
+- Uživatel udělal **kopii celého sešitu** (Soubor → Vytvořit kopii),
+  pojmenovanou "testovaci verze 2026" — **HOTOVO, existuje**
+- Kopie obsahuje i vlastní kopie Apps Script projektů
+
+**Co zbývá (návod, který jsem dal, ale ještě neprovedeno):**
+1. Zjistit ID kopie sešitu (z URL)
+2. V Apps Scriptu KOPIE upravit `SPREADSHEET_ID` na ID kopie
+3. Nasadit NOVÉ nasazení (Nasadit → Nové nasazení) → získat testovací URL
+4. **DOČASNĚ** přepnout `config.js` (ostré appky) na tuhle testovací URL
+5. Otestovat migraci v appce → zkontrolovat výsledek v KOPII sešitu
+6. Až sedí → vrátit `config.js` zpátky na ORIGINÁLNÍ URL
+7. Spustit migraci znovu, tentokrát naostro
+
+**DŮLEŽITÉ:** Nikdy jsem neviděl obsah `config.js` — až se bude pokračovat,
+je potřeba si ho vyžádat, abych mohl přesně říct, který řádek dočasně
+změnit a pak vrátit zpátky.
+
+**Uživatel řekl:** "nemám teď čas to všechno udělat" — čeká se, až bude mít
+čas. Appka mezitím běží normálně na originálním sešitu, nic není rozbité.
+
+---
+
+## 🔑 KLÍČOVÉ ZÁSADY (nutné dodržet při pokračování)
+
+1. **Nikdy neposílat kód, dokud se nedomluvíme co a proč** — uživatel to
+   opakovaně zdůraznil
+2. **Nikdy neměnit nic, co funguje** — jen přidávat/opravovat přesně
+   domluvené
+3. **Vždy posílat kompletní soubor**, ne fragment — uživatel kopíruje
+   celý obsah do GitHubu
+4. Do hlavičky každého upraveného souboru přidat **datovaný komentář**
+   s vysvětlením (styl `// v2026-XX-XX - OPRAVA: ...`)
+5. Testuje se na `dev` větvi (Vercel preview:
+   `evidence-prace-git-dev-rostahilses-projects.vercel.app`), pak merge
+   do `main`
+6. **Migrace/mazání dat = vždy s velkou opatrností**, potvrzovací dialogy,
+   preferovat "jen přidat" před "smazat", pokud to jde
+7. Pracovníci se v datech párují spolehlivě přes **ID** (`record[1]`),
+   ne přes jméno (`record[6]`) — jméno se může nepřesně shodovat
+
+---
+
+## 📁 KOMPLETNÍ STRUKTURA SOUBORŮ (dev větev)
+
+```
+index.html
+js/
+  config.js       ← NIKDY jsem neviděl obsah! Vyžádat při potřebě.
+  utils.js
+  api.js
+  main.js         ✅ aktuální, má Kontrola dat v Nástrojích
+  components/
+    login.js
+    home.js       ✅ opraveno (retry, 7-day bug)
+    nedokoncene.js ✅ NOVÝ, funkční
+    summary.js
+    settings.js
+    admin/
+      admin.js      ✅ Nedokončené + Oprava, delete tlačítko
+      statistics.js ✅ opraveno (all data, isAdmin, crash fixy)
+      kontrola.js   ✅ 3 záložky, delete u konfliktů
+    stavebni-denik.js
+kod.gs (Google Apps Script) ✅ migrace + duplicate-check
+```
+
+---
+
+## 📞 TESTOVACÍ ÚDAJE
+
+- Google Sheet ID (ostrý): `1OMSWRrn2aBHMItjx4Vu0Syn4PII8F1uw-GSWEuaoZGo`
+- Kopie sešitu: "testovaci verze 2026" (existuje, ID zatím nezjištěno)
+- Testovací přihlašovací kód: `363236` (Lulu, admin)
+
+---
+
+*Pokud konverzace skončí: nový AI asistent by měl začít tím, že si
+přečte tenhle dokument, a při pokračování migrace na kopii si vyžádá
+`config.js` a ID kopie sešitu.*
